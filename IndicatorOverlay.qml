@@ -14,6 +14,7 @@ PanelWindow {
   Commons.Translations { id: strings; directory: Qt.resolvedUrl("i18n") }
   property bool showEdge: true
   property bool showPill: true
+  property string glowEffect: "pulse"
   property bool hasActiveWindow: false
   property real winX: 0
   property real winY: 0
@@ -64,23 +65,53 @@ PanelWindow {
     height: 0
   }
 
-  readonly property color glowColor: Commons.Color.accent
-  readonly property int glowWidth: 28
-  property real pulse: 0.45
+  readonly property color baseGlowColor: Commons.Color.accent
+  property real phase: 0.0
 
-  SequentialAnimation on pulse {
+  NumberAnimation on phase {
     running: root.isListening && root.visible
+    from: 0.0
+    to: Math.PI * 2.0
+    duration: root.glowEffect === "breathe" ? 2400 : 1500
     loops: Animation.Infinite
-    NumberAnimation { to: 0.95; duration: 750; easing.type: Easing.InOutSine }
-    NumberAnimation { to: 0.35; duration: 750; easing.type: Easing.InOutSine }
   }
 
-  readonly property real edgeAlpha: root.isListening ? root.pulse * 0.42 : 0.22
+  readonly property real waveSin: 0.5 + 0.5 * Math.sin(phase)
+  readonly property real pulse: 0.35 + 0.60 * waveSin
+
+  readonly property color glowColor: {
+    if (root.glowEffect === "prism" && root.isListening) {
+      var h = (baseGlowColor.hslHue + 0.09 * Math.sin(phase) + 1.0) % 1.0
+      var s = Math.max(0.45, baseGlowColor.hslSaturation)
+      var l = Math.min(0.75, Math.max(0.45, baseGlowColor.hslLightness))
+      return Qt.hsla(h, s, l, 1.0)
+    }
+    return baseGlowColor
+  }
+
+  readonly property int glowWidth: {
+    if (root.glowEffect === "breathe" && root.isListening) {
+      return Math.round(18 + 24 * waveSin)
+    }
+    return 28
+  }
+
+  function edgeAlphaFor(offset) {
+    if (!root.isListening) return 0.22
+    if (root.glowEffect === "wave") {
+      var v = 0.5 + 0.5 * Math.sin(phase - offset)
+      return (0.18 + 0.78 * v) * 0.45
+    }
+    if (root.glowEffect === "breathe") {
+      return (0.28 + 0.72 * waveSin) * 0.46
+    }
+    return root.pulse * 0.42
+  }
 
   component EdgeGlow: Rectangle {
     id: edge
     property bool horizontal: false
-    property real alphaScale: root.edgeAlpha
+    property real alphaScale: 0.35
 
     function shade(a) {
       return Qt.rgba(root.glowColor.r, root.glowColor.g, root.glowColor.b, a * alphaScale)
@@ -111,22 +142,26 @@ PanelWindow {
       EdgeGlow {
         anchors { top: parent.top; left: parent.left; right: parent.right }
         height: root.glowWidth
-      }
-      EdgeGlow {
-        anchors { bottom: parent.bottom; left: parent.left; right: parent.right }
-        height: root.glowWidth
-        rotation: 180
-      }
-      EdgeGlow {
-        anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
-        width: root.glowWidth
-        horizontal: true
+        alphaScale: root.edgeAlphaFor(0.0)
       }
       EdgeGlow {
         anchors { right: parent.right; top: parent.top; bottom: parent.bottom }
         width: root.glowWidth
         horizontal: true
         rotation: 180
+        alphaScale: root.edgeAlphaFor(Math.PI * 0.5)
+      }
+      EdgeGlow {
+        anchors { bottom: parent.bottom; left: parent.left; right: parent.right }
+        height: root.glowWidth
+        rotation: 180
+        alphaScale: root.edgeAlphaFor(Math.PI)
+      }
+      EdgeGlow {
+        anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
+        width: root.glowWidth
+        horizontal: true
+        alphaScale: root.edgeAlphaFor(Math.PI * 1.5)
       }
     }
 

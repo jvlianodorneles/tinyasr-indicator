@@ -19,6 +19,7 @@ BarWidget {
   }
 
   readonly property string currentStyle: indicatorService ? indicatorService.indicatorStyle : "both"
+  readonly property string currentEffect: indicatorService ? indicatorService.glowEffect : "pulse"
   readonly property string currentModel: indicatorService ? indicatorService.modelFile : "en-es-it-pt.tzf"
   readonly property string currentLang: indicatorService ? indicatorService.langCode : "pt"
   readonly property int currentBeam: indicatorService ? indicatorService.beamWidth : 4
@@ -91,6 +92,13 @@ BarWidget {
     { value: "edge", labelKey: "style.edge" },
     { value: "pill", labelKey: "style.pill" },
     { value: "none", labelKey: "style.none" }
+  ]
+
+  readonly property var effectOptions: [
+    { value: "pulse", labelKey: "effect.pulse" },
+    { value: "wave", labelKey: "effect.wave" },
+    { value: "breathe", labelKey: "effect.breathe" },
+    { value: "prism", labelKey: "effect.prism" }
   ]
 
   function close() {
@@ -429,6 +437,68 @@ BarWidget {
                 cursorShape: Qt.PointingHandCursor
                 onClicked: {
                   if (root.indicatorService) root.indicatorService.setIndicatorStyle(styleChip.modelData.value)
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Section 5: Efeito do glow
+      Column {
+        width: parent.width
+        spacing: Commons.Style.space(4)
+        visible: root.currentStyle === "both" || root.currentStyle === "edge"
+
+        Text {
+          textFormat: Text.PlainText
+          text: strings.t("section.glowEffect")
+          color: Commons.Color.popups.text
+          opacity: 0.7
+          font.family: Commons.Style.font.family
+          font.pixelSize: Math.max(10, Commons.Style.font.body - 2)
+          font.weight: Font.Medium
+        }
+
+        Grid {
+          width: parent.width
+          columns: 2
+          spacing: Commons.Style.space(6)
+
+          Repeater {
+            model: root.effectOptions
+
+            delegate: Rectangle {
+              id: effectChip
+              required property var modelData
+              readonly property bool selected: root.currentEffect === modelData.value
+
+              width: (contentColumn.width - Commons.Style.space(6)) / 2
+              height: Commons.Style.space(28)
+              radius: Commons.Style.space(6)
+              color: selected
+                ? Commons.Style.selectedAccentFill
+                : (effectHover.containsMouse ? Commons.Style.hoverFill : Commons.Style.normalFill)
+              border.width: selected ? 1 : 0
+              border.color: Commons.Color.accent
+
+              Text {
+                anchors.centerIn: parent
+                textFormat: Text.PlainText
+                text: strings.t(effectChip.modelData.labelKey)
+                color: Commons.Color.popups.text
+                font.family: Commons.Style.font.family
+                font.pixelSize: Math.max(10, Commons.Style.font.body - 1)
+                font.weight: effectChip.selected ? Font.DemiBold : Font.Normal
+              }
+
+              MouseArea {
+                id: effectHover
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                  if (root.indicatorService) root.indicatorService.setGlowEffect(effectChip.modelData.value)
                 }
               }
             }

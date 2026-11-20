@@ -14,6 +14,7 @@ MAX_FILE_BYTES = 256
 MAX_HYPR_BYTES = 16384
 
 VALID_STYLES = {"both", "edge", "pill", "none"}
+VALID_EFFECTS = {"pulse", "wave", "breathe", "prism"}
 VALID_MODELS = {
     "en-es-it-pt.tzf",
     "en-ru-uk.tzf",
@@ -26,6 +27,7 @@ LANG_RE = re.compile(r"^[A-Za-z0-9_,-]{1,32}$")
 
 KEY_FILES = {
     "style": "indicator-style",
+    "effect": "glow-effect",
     "model": "model",
     "lang": "lang",
     "beam": "beam",
@@ -96,6 +98,7 @@ def cmd_read() -> None:
             json.dumps(
                 {
                     "style": "both",
+                    "effect": "pulse",
                     "model": "en-es-it-pt.tzf",
                     "lang": "pt",
                     "beam": 4,
@@ -108,6 +111,9 @@ def cmd_read() -> None:
         style = read_small_file(dir_fd, "indicator-style", "both")
         if style not in VALID_STYLES:
             style = "both"
+        effect = read_small_file(dir_fd, "glow-effect", "pulse")
+        if effect not in VALID_EFFECTS:
+            effect = "pulse"
         model = read_small_file(dir_fd, "model", "en-es-it-pt.tzf")
         if model not in VALID_MODELS:
             model = "en-es-it-pt.tzf"
@@ -116,7 +122,7 @@ def cmd_read() -> None:
             lang = "pt"
         beam_raw = read_small_file(dir_fd, "beam", "4")
         beam = 1 if beam_raw == "1" else 4
-        print(json.dumps({"style": style, "model": model, "lang": lang, "beam": beam}))
+        print(json.dumps({"style": style, "effect": effect, "model": model, "lang": lang, "beam": beam}))
     finally:
         os.close(dir_fd)
 
@@ -125,6 +131,10 @@ def validate_value(key: str, value: str) -> str:
     if key == "style":
         if value not in VALID_STYLES:
             raise ValueError("Invalid style")
+        return value
+    if key == "effect":
+        if value not in VALID_EFFECTS:
+            raise ValueError("Invalid effect")
         return value
     if key == "model":
         if value not in VALID_MODELS:

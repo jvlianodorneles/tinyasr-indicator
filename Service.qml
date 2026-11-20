@@ -12,6 +12,8 @@ Item {
 
   // Visual indicator: "both" | "edge" | "pill" | "none"
   property string indicatorStyle: "both"
+  // Glow animation effect: "pulse" | "wave" | "breathe" | "prism"
+  property string glowEffect: "pulse"
   // Model filename in ~/.local/share/tinyasr/models/
   property string modelFile: "en-es-it-pt.tzf"
   // Language code(s): e.g. "pt", "en", "pt,en", "auto"
@@ -35,6 +37,12 @@ Item {
     var s = String(value || "").trim()
     if (s === "both" || s === "edge" || s === "pill" || s === "none") return s
     return "both"
+  }
+
+  function normalizeEffect(value) {
+    var e = String(value || "").trim()
+    if (e === "pulse" || e === "wave" || e === "breathe" || e === "prism") return e
+    return "pulse"
   }
 
   function normalizeModel(value) {
@@ -65,6 +73,7 @@ Item {
         try {
           var cfg = JSON.parse(line)
           root.indicatorStyle = root.normalizeStyle(cfg.style)
+          root.glowEffect = root.normalizeEffect(cfg.effect)
           root.modelFile = root.normalizeModel(cfg.model)
           root.langCode = root.normalizeLang(cfg.lang)
           root.beamWidth = root.normalizeBeam(cfg.beam)
@@ -116,6 +125,13 @@ Item {
     if (root.indicatorStyle === next) return
     root.indicatorStyle = next
     writeConfig("style", next)
+  }
+
+  function setGlowEffect(effect) {
+    var next = root.normalizeEffect(effect)
+    if (root.glowEffect === next) return
+    root.glowEffect = next
+    writeConfig("effect", next)
   }
 
   function setModelFile(model) {
@@ -184,6 +200,7 @@ Item {
         mode: root.mode
         showEdge: root.indicatorStyle === "both" || root.indicatorStyle === "edge"
         showPill: root.indicatorStyle === "both" || root.indicatorStyle === "pill"
+        glowEffect: root.glowEffect
         hasActiveWindow: root.hasActiveWindow
         winX: root.winX
         winY: root.winY
@@ -200,6 +217,7 @@ Item {
     function transcribing(): void { root.setMode("transcribing") }
     function hide(): void { root.setMode("idle") }
     function setStyle(style: string): void { root.setIndicatorStyle(style) }
+    function setGlowEffect(effect: string): void { root.setGlowEffect(effect) }
     function setModel(model: string): void { root.setModelFile(model) }
     function setLang(lang: string): void { root.setLangCode(lang) }
     function setBeam(beam: int): void { root.setBeamWidth(beam) }
@@ -209,6 +227,7 @@ Item {
       return JSON.stringify({
         mode: root.mode,
         style: root.indicatorStyle,
+        glowEffect: root.glowEffect,
         model: root.modelFile,
         lang: root.langCode,
         beam: root.beamWidth
