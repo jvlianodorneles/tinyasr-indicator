@@ -1,0 +1,243 @@
+#!/usr/bin/env python3
+"""Safe config and active-window helper for dorneles.tinyasr-indicator."""
+
+import json
+import os
+import re
+import stat
+import subprocess
+import sys
+import tempfile
+
+CONFIG_SUBDIR = "tinyasr"
+MAX_FILE_BYTES = 256
+MAX_HYPR_BYTES = 16384
+
+VALID_STYLES = {"both", "edge", "pill", "none"}
+VALID_MODELS = {
+    "en-es-it-pt.tzf",
+    "en-ru-uk.tzf",
+    "uz.tzf",
+    "en-fa.tzf",
+    "en-km.tzf",
+}
+VALID_BEAMS = {"1", "4"}
+LANG_RE = re.compile(r"^[A-Za-z0-9_,-]{1,32}$")
+
+KEY_FILES = {
+    "style": "indicator-style",
+    "model": "model",
+    "lang": "lang",
+    "beam": "beam",
+}
+
+
+def xdg_config_home() -> str:
+    xdg = os.environ.get("XDG_CONFIG_HOME", "")
+    if xdg and os.path.isabs(xdg):
+        return xdg
+    return os.path.join(os.path.expanduser("~"), ".config")
+
+
+def open_verified_config_dir(create: bool) -> int:
+    base = xdg_config_home()
+    base_fd = os.open(base, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
+    try:
+        try:
+            dir_fd = os.open(
+                CONFIG_SUBDIR,
+                os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC,
+                dir_fd=base_fd,
+            )
+        except FileNotFoundError:
+            if not create:
+                raise
+            os.mkdir(CONFIG_SUBDIR, 0o700, dir_fd=base_fd)
+            dir_fd = os.open(
+                CONFIG_SUBDIR,
+                os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC,
+                dir_fd=base_fd,
+            )
+        st = os.fstat(dir_fd)
+        if not stat.S_ISDIR(st.st_mode) or st.st_uid != os.getuid():
+            os.close(dir_fd)
+            raise PermissionError("Invalid config directory ownership or type")
+        return dir_fd
+    finally:
+        os.close(base_fd)
+
+
+def read_small_file(dir_fd: int, filename: str, default: str) -> str:
+    try:
+        fd = os.open(
+            filename,
+            os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC,
+            dir_fd=dir_fd,
+        )
+    except FileNotFoundError:
+        return default
+    try:
+        st = os.fstat(fd)
+        if not stat.S_ISREG(st.st_mode) or st.st_uid != os.getuid():
+            return default
+        data = os.read(fd, MAX_FILE_BYTES + 1)
+        if len(data) > MAX_FILE_BYTES:
+            return default
+        return data.decode("utf-8", errors="replace").strip() or default
+    finally:
+        os.close(fd)
+
+
+def cmd_read() -> None:
+    try:
+        dir_fd = open_verified_config_dir(create=False)
+    except FileNotFoundError:
+        print(
+            json.dumps(
+                {
+                    "style": "both",
+                    "model": "en-es-it-pt.tzf",
+                    "lang": "pt",
+                    "beam": 4,
+                }
+            )
+        )
+        return
+
+    try:
+        style = read_small_file(dir_fd, "indicator-style", "both")
+        if style not in VALID_STYLES:
+            style = "both"
+        model = read_small_file(dir_fd, "model", "en-es-it-pt.tzf")
+        if model not in VALID_MODELS:
+            model = "en-es-it-pt.tzf"
+        lang = read_small_file(dir_fd, "lang", "pt")
+        if not LANG_RE.match(lang):
+            lang = "pt"
+        beam_raw = read_small_file(dir_fd, "beam", "4")
+        beam = 1 if beam_raw == "1" else 4
+        print(json.dumps({"style": style, "model": model, "lang": lang, "beam": beam}))
+    finally:
+        os.close(dir_fd)
+
+
+def validate_value(key: str, value: str) -> str:
+    if key == "style":
+        if value not in VALID_STYLES:
+            raise ValueError("Invalid style")
+        return value
+    if key == "model":
+        if value not in VALID_MODELS:
+            raise ValueError("Invalid model")
+        return value
+    if key == "beam":
+        if value not in VALID_BEAMS:
+            raise ValueError("Invalid beam")
+        return value
+    if key == "lang":
+        if not LANG_RE.match(value):
+            raise ValueError("Invalid lang")
+        return value
+    raise ValueError("Unknown key")
+
+
+def cmd_write(key: str, value: str) -> None:
+    if key not in KEY_FILES:
+        raise ValueError("Unknown key")
+    clean = validate_value(key, value.strip())
+    filename = KEY_FILES[key]
+
+    dir_fd = open_verified_config_dir(create=True)
+    tmp_name = None
+    try:
+        os.fchmod(dir_fd, 0o700)
+        dir_path = f"/proc/self/fd/{dir_fd}"
+        fd, tmp_path = tempfile.mkstemp(prefix=f".{filename}.", dir=dir_path)
+        tmp_name = os.path.basename(tmp_path)
+        try:
+            os.fchmod(fd, 0o600)
+            payload = (clean + "\n").encode("utf-8")
+            written = 0
+            while written < len(payload):
+                written += os.write(fd, payload[written:])
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+        os.replace(tmp_name, filename, src_dir_fd=dir_fd, dst_dir_fd=dir_fd)
+        tmp_name = None
+        os.fsync(dir_fd)
+    finally:
+        if tmp_name is not None:
+            try:
+                os.unlink(tmp_name, dir_fd=dir_fd)
+            except OSError:
+                pass
+        os.close(dir_fd)
+
+
+def cmd_activewindow() -> None:
+    proc = subprocess.Popen(
+        ["hyprctl", "activewindow", "-j"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        out = proc.stdout.read(MAX_HYPR_BYTES + 1)
+        proc.wait(timeout=2)
+    except Exception:
+        proc.kill()
+        proc.wait()
+        print('{"ok":false}')
+        return
+
+    if len(out) > MAX_HYPR_BYTES or proc.returncode != 0:
+        print('{"ok":false}')
+        return
+
+    try:
+        data = json.loads(out.decode("utf-8", errors="strict"))
+        at = data.get("at")
+        size = data.get("size")
+        if (
+            isinstance(at, list)
+            and isinstance(size, list)
+            and len(at) == 2
+            and len(size) == 2
+            and float(size[0]) > 0
+            and float(size[1]) > 0
+        ):
+            print(
+                json.dumps(
+                    {
+                        "ok": True,
+                        "x": float(at[0]),
+                        "y": float(at[1]),
+                        "w": float(size[0]),
+                        "h": float(size[1]),
+                    }
+                )
+            )
+            return
+    except Exception:
+        pass
+    print('{"ok":false}')
+
+
+def main() -> int:
+    if len(sys.argv) < 2:
+        return 2
+    cmd = sys.argv[1]
+    if cmd == "read" and len(sys.argv) == 2:
+        cmd_read()
+        return 0
+    if cmd == "write" and len(sys.argv) == 4:
+        cmd_write(sys.argv[2], sys.argv[3])
+        return 0
+    if cmd == "activewindow" and len(sys.argv) == 2:
+        cmd_activewindow()
+        return 0
+    return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main())

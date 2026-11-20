@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "dorneles.tinyasr-indicator",
+  "name": "TinyASR Dictation Indicator",
+  "version": "1.1.0",
+  "author": "dorneles",
+  "description": "Active-window edge glow, floating pill indicator, and settings panel for TinyASR voice dictation.",
+  "homepage": "https://github.com/jvlianodorneles/tinyasr-indicator",
+  "license": "MIT",
+  "kinds": ["service", "bar-widget"],
+  "entryPoints": {
+    "service": "Service.qml",
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "TinyASR Indicator",
+    "description": "Configure visual indicator, language, model, and decoding mode for TinyASR dictation.",
+    "category": "Tools",
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {
+      "indicatorStyle": "both"
+    },
+    "schema": [
+      {
+        "key": "indicatorStyle",
+        "type": "string",
+        "label": "Indicator style (both, edge, pill, none)",
+        "defaultValue": "both"
+      }
+    ]
+  }
+}

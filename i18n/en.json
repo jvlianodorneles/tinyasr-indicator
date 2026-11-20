@@ -1,0 +1,17 @@
+{
+  "panel.title": "TinyASR Dictation",
+  "section.language": "Language",
+  "section.model": "Model  [M]",
+  "section.decoding": "Decoding  [B]",
+  "section.indicator": "Visual indicator  [1-4]",
+  "beam.accurate": "Accurate (Beam 4)",
+  "beam.fast": "Fast (Greedy)",
+  "style.both": "Edges + Pill",
+  "style.edge": "Edges only",
+  "style.pill": "Pill only",
+  "style.none": "None",
+  "action.test": "Test animation (2s)  [T]",
+  "lang.auto": "Auto",
+  "status.listening": "Listening...",
+  "status.transcribing": "Transcribing..."
+}

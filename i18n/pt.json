@@ -1,0 +1,17 @@
+{
+  "panel.title": "TinyASR Ditado",
+  "section.language": "Idioma",
+  "section.model": "Modelo  [M]",
+  "section.decoding": "Decodificação  [B]",
+  "section.indicator": "Indicador visual  [1-4]",
+  "beam.accurate": "Preciso (Beam 4)",
+  "beam.fast": "Rápido (Greedy)",
+  "style.both": "Bordas + Pílula",
+  "style.edge": "Apenas bordas",
+  "style.pill": "Apenas pílula",
+  "style.none": "Nenhuma",
+  "action.test": "Testar animação (2s)  [T]",
+  "lang.auto": "Auto",
+  "status.listening": "Ouvindo...",
+  "status.transcribing": "Transcrevendo..."
+}

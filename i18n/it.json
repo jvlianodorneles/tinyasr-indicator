@@ -1,0 +1,17 @@
+{
+  "panel.title": "Dettatura TinyASR",
+  "section.language": "Lingua",
+  "section.model": "Modello  [M]",
+  "section.decoding": "Decodifica  [B]",
+  "section.indicator": "Indicatore visivo  [1-4]",
+  "beam.accurate": "Preciso (Beam 4)",
+  "beam.fast": "Veloce (Greedy)",
+  "style.both": "Bordi + Pillola",
+  "style.edge": "Solo bordi",
+  "style.pill": "Solo pillola",
+  "style.none": "Nessuno",
+  "action.test": "Prova animazione (2s)  [T]",
+  "lang.auto": "Auto",
+  "status.listening": "In ascolto...",
+  "status.transcribing": "Trascrizione..."
+}
