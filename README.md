@@ -2,6 +2,8 @@
 
 An Omarchy Shell (`Quickshell`) plugin that provides an active-window **edge glow**, a floating **listening/transcribing pill**, and a **settings panel** for on-device [tinyasr](https://github.com/dkaraush/tinyasr) voice dictation.
 
+![TinyASR Dictation Indicator preview](preview.png)
+
 ## Features
 
 - **Active-window indicator**: Renders a smooth pulsing edge glow and/or floating pill centered on the focused Hyprland window (with automatic screen fallback).
