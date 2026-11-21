@@ -9,6 +9,9 @@ Item {
 
   // "idle" | "listening" | "transcribing"
   property string mode: "idle"
+  // Temporary 2s animation preview when idle; never mutates `mode`
+  property bool previewActive: false
+  readonly property string effectiveMode: mode !== "idle" ? mode : (previewActive ? "listening" : "idle")
 
   // Visual indicator: "both" | "edge" | "pill" | "none"
   property string indicatorStyle: "both"
@@ -156,37 +159,26 @@ Item {
   }
 
   Timer {
-    id: safetyTimer
-    interval: 60000
-    repeat: false
-    onTriggered: root.mode = "idle"
-  }
-
-  Timer {
     id: previewTimer
     interval: 2000
     repeat: false
-    onTriggered: root.setMode("idle")
+    onTriggered: root.previewActive = false
   }
 
   function setMode(nextMode) {
     previewTimer.stop()
+    root.previewActive = false
     if (nextMode !== "idle" && root.mode === "idle") {
       refreshActiveWindow()
     }
     root.mode = nextMode
-    if (nextMode === "idle") {
-      safetyTimer.stop()
-    } else {
-      safetyTimer.restart()
-    }
   }
 
   function preview() {
     if (root.indicatorStyle === "none") return
+    if (root.mode !== "idle") return
     refreshActiveWindow()
-    root.mode = "listening"
-    safetyTimer.stop()
+    root.previewActive = true
     previewTimer.restart()
   }
 
@@ -197,7 +189,7 @@ Item {
       IndicatorOverlay {
         required property var modelData
         targetScreen: modelData
-        mode: root.mode
+        mode: root.effectiveMode
         showEdge: root.indicatorStyle === "both" || root.indicatorStyle === "edge"
         showPill: root.indicatorStyle === "both" || root.indicatorStyle === "pill"
         glowEffect: root.glowEffect

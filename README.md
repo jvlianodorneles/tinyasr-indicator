@@ -141,8 +141,9 @@ omarchy plugin remove dorneles.tinyasr-indicator
 ```bash
 rm -f ~/.local/bin/tinyasr ~/.local/bin/tinyasr-cli ~/.local/bin/omarchy-dictation-tinyasr
 rm -rf ~/.local/share/tinyasr ~/.config/tinyasr
-rm -rf ~/Projects/tinyasr ~/Projects/tinyasr-cli
 ```
+
+The source directories `~/Projects/tinyasr` and `~/Projects/tinyasr-cli` (which contains your local Rust wrapper source) are left untouched so local edits are not lost. If you no longer need them after reviewing/backing up any changes, remove them manually.
 
 If `tinyasr` was your active dictation backend, clear or switch it:
 
