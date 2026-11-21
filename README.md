@@ -95,16 +95,34 @@ omarchy-restart-hyprctl
 
 ### 5. Keyboard shortcuts (Hyprland)
 
-Once `tinyasr` is active, Omarchy binds:
+Once `tinyasr` is active, Omarchy binds by default:
 - **`Alt + Space`**: Toggle dictation (`omarchy-dictation toggle`)
 - **Hold `Right Alt`**: Push-to-talk (`omarchy-dictation start` / `stop`)
 
-On keyboard layouts where Right Alt is **AltGr** (`ISO_Level3_Shift`, such as `br` or `us-intl`), add this to `~/.config/hypr/bindings.lua` and run `omarchy-restart-hyprctl`:
+To configure a custom activation key, edit `~/.config/hypr/bindings.lua` and run `omarchy-restart-hyprctl` to apply the changes:
+
+- **Custom push-to-talk key** (for example, **Right Ctrl** `Control_R`, or **AltGr** `ISO_Level3_Shift` on `br` / `us-intl` layouts where Right Alt is AltGr):
 
 ```lua
 if o.dictation_installed() then
-  o.bind_hold("ISO_Level3_Shift", "Start dictation (push-to-talk, AltGr)", "omarchy-dictation start", "Stop dictation (push-to-talk, AltGr)", "omarchy-dictation stop", { ignore_mods = true })
+  o.bind_hold(
+    "Control_R",
+    "Start dictation (push-to-talk, Right Ctrl)",
+    "omarchy-dictation start",
+    "Stop dictation (push-to-talk, Right Ctrl)",
+    "omarchy-dictation stop",
+    { ignore_mods = true, non_consuming = true, transparent = true }
+  )
 end
+```
+
+  > Replace `"Control_R"` with `"ISO_Level3_Shift"` (for AltGr) or any key name accepted by Hyprland. `non_consuming = true` and `transparent = true` keep normal modifier combinations (such as `Ctrl + C`) working as usual.
+
+- **Custom toggle shortcut** (to replace `Alt + Space`, unbind the default first and bind your preferred combination):
+
+```lua
+hl.unbind("ALT + SPACE")
+o.bind("SUPER + ALT + D", "Toggle dictation", "omarchy-dictation toggle")
 ```
 
 ---
